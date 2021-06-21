@@ -20,3 +20,7 @@ some tracking issue related to above? https://github.com/graphql-rust/juniper/is
 - remark (markdown parsing/AST): https://www.npmjs.com/package/remark 
 - apollo client
 - lerna
+
+## Helpful resources
+
+- Building a site search with tantivy: https://jstrong.dev/posts/2020/building-a-site-search-with-tantivy/
