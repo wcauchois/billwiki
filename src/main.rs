@@ -1,3 +1,5 @@
+mod store;
+
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -65,10 +67,12 @@ fn build_tantivy_index() {
     // drop(index);
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     // let contents = fs::read_to_string("/tmp/rust-test.txt")?;
     // println!("contents are {}", contents);
     // println!("Hello, world!");
-    build_tantivy_index();
+    // build_tantivy_index();
+    let store = store::Store::new("devwiki")?;
+    store.pages();
     Ok(())
 }
