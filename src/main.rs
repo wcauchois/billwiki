@@ -1,4 +1,10 @@
+mod schema;
 mod store;
+
+use crate::schema::{create_schema, Schema};
+
+#[macro_use]
+extern crate log;
 
 use std::error::Error;
 use std::fs;
@@ -6,6 +12,14 @@ use std::path::Path;
 
 use tantivy::doc;
 use tantivy::{schema::*, tokenizer::*, Document, Index};
+
+use std::io;
+use std::sync::Arc;
+
+use actix_cors::Cors;
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use juniper::http::graphiql::graphiql_source;
+use juniper::http::GraphQLRequest;
 
 fn build_tantivy_index() {
     let text_indexing_options = TextFieldIndexing::default()
@@ -56,7 +70,9 @@ fn build_tantivy_index() {
 
     // Perform search.
     // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
-    let top_docs: Vec<(tantivy::Score, tantivy::DocAddress)> = searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10)).unwrap();
+    let top_docs: Vec<(tantivy::Score, tantivy::DocAddress)> = searcher
+        .search(&query, &tantivy::collector::TopDocs::with_limit(10))
+        .unwrap();
 
     for (_score, doc_address) in top_docs {
         // Retrieve the actual content of documents given its `doc_address`.
@@ -67,12 +83,60 @@ fn build_tantivy_index() {
     // drop(index);
 }
 
-fn main() -> anyhow::Result<()> {
+const PORT: u16 = 3010;
+
+async fn graphiql() -> HttpResponse {
+    let html = graphiql_source(format!("http://127.0.0.1:{}/graphql", PORT).as_str(), None);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
+}
+
+async fn graphql(
+    st: web::Data<Arc<Schema>>,
+    data: web::Json<GraphQLRequest>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let body = web::block(move || {
+        let res = data.execute_sync(&st, &());
+        Ok::<_, serde_json::error::Error>(serde_json::to_string(&res)?)
+    })
+    .await?;
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .body(body))
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
+
+    info!("Starting server on port {}", PORT);
+
+    let schema = std::sync::Arc::new(create_schema());
+
+    HttpServer::new(move || {
+        App::new()
+            .data(schema.clone())
+            .wrap(middleware::Logger::default())
+            .wrap(
+                Cors::default()
+                    .allowed_methods(vec!["POST", "GET"])
+                    .allowed_header(actix_web::http::header::CONTENT_TYPE)
+                    .allow_any_origin()
+                    .supports_credentials()
+                    .max_age(3600)
+            )
+            .service(web::resource("/graphql").route(web::post().to(graphql)))
+            .service(web::resource("/graphiql").route(web::get().to(graphiql)))
+    })
+    .bind("127.0.0.1:3010")? // TODO: Use PORT
+    .run()
+    .await
     // let contents = fs::read_to_string("/tmp/rust-test.txt")?;
     // println!("contents are {}", contents);
     // println!("Hello, world!");
     // build_tantivy_index();
-    let store = store::Store::new("devwiki")?;
-    store.pages();
-    Ok(())
+    // let store = store::Store::new("devwiki")?;
+    // store.pages();
 }
