@@ -435,6 +435,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tantivy",
+ "tokio 1.7.1",
 ]
 
 [[package]]

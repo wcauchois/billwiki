@@ -1,5 +1,4 @@
 use git2::Repository;
-use anyhow::anyhow;
 
 pub struct Store {
   repository: Repository,

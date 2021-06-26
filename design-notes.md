@@ -24,3 +24,7 @@ some tracking issue related to above? https://github.com/graphql-rust/juniper/is
 ## Helpful resources
 
 - Building a site search with tantivy: https://jstrong.dev/posts/2020/building-a-site-search-with-tantivy/
+
+### random
+
+https://github.com/teramotodaiki/remark-plain-text

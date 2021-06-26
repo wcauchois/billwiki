@@ -1,5 +1,6 @@
 mod schema;
 mod store;
+mod search_actor;
 
 use crate::schema::{create_schema, Schema};
 
@@ -10,6 +11,7 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
+use actix::spawn;
 use tantivy::doc;
 use tantivy::{schema::*, tokenizer::*, Document, Index};
 
@@ -20,6 +22,7 @@ use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
+use actix::prelude::*;
 
 fn build_tantivy_index() {
     let text_indexing_options = TextFieldIndexing::default()
@@ -94,13 +97,18 @@ async fn graphiql() -> HttpResponse {
 
 async fn graphql(
     st: web::Data<Arc<Schema>>,
-    data: web::Json<GraphQLRequest>,
+    graphql_request: web::Json<GraphQLRequest>,
+    search_actor_addr: web::Data<schema::SearchActorAddr>
 ) -> Result<HttpResponse, actix_web::Error> {
-    let body = web::block(move || {
-        let res = data.execute_sync(&st, &());
-        Ok::<_, serde_json::error::Error>(serde_json::to_string(&res)?)
-    })
-    .await?;
+    let graphql_context = schema::GraphQLContext {
+        search_actor_addr: schema::SearchActorAddr::clone(&search_actor_addr)
+    };
+    let res = graphql_request.execute(&st, &graphql_context).await;
+    let body = serde_json::to_string(&res)?;
+    // let body = web::block(move || {
+    //     Ok::<_, serde_json::error::Error>(serde_json::to_string(&res)?)
+    // })
+    // .await?;
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .body(body))
@@ -114,25 +122,41 @@ async fn main() -> std::io::Result<()> {
     info!("Starting server on port {}", PORT);
 
     let schema = std::sync::Arc::new(create_schema());
+    let system = actix::System::new();
+    // let search_actor = search_actor::SearchActor{};
 
-    HttpServer::new(move || {
-        App::new()
-            .data(schema.clone())
-            .wrap(middleware::Logger::default())
-            .wrap(
-                Cors::default()
-                    .allowed_methods(vec!["POST", "GET"])
-                    .allowed_header(actix_web::http::header::CONTENT_TYPE)
-                    .allow_any_origin()
-                    .supports_credentials()
-                    .max_age(3600)
-            )
-            .service(web::resource("/graphql").route(web::post().to(graphql)))
-            .service(web::resource("/graphiql").route(web::get().to(graphiql)))
+    system.block_on(async {
+        let search_actor_addr = SyncArbiter::start(1, || search_actor::SearchActor{});
+        let search_actor_addr_mutex = std::sync::Arc::new(std::sync::Mutex::new(search_actor_addr));
+
+        let server = HttpServer::new(move || {
+            App::new()
+                .data(schema.clone())
+                .wrap(middleware::Logger::default())
+                .data(schema::SearchActorAddr(search_actor_addr_mutex.clone()))
+                .wrap(
+                    Cors::default()
+                        .allowed_methods(vec!["POST", "GET"])
+                        .allowed_header(actix_web::http::header::CONTENT_TYPE)
+                        .allow_any_origin()
+                        .supports_credentials()
+                        .max_age(3600)
+                )
+                .service(web::resource("/graphql").route(web::post().to(graphql)))
+                .service(web::resource("/graphiql").route(web::get().to(graphiql)))
+        })
+        .bind("127.0.0.1:3010")? // TODO: Use PORT
+        .run();
+
+        // spawn(async move {
+        //     search_actor_addr.send(search_actor::Reindex).await.unwrap();
+        // });
+        server.await.unwrap();
+        Ok(())
     })
-    .bind("127.0.0.1:3010")? // TODO: Use PORT
-    .run()
-    .await
+
+    // let local = tokio::task::LocalSet::new();
+
     // let contents = fs::read_to_string("/tmp/rust-test.txt")?;
     // println!("contents are {}", contents);
     // println!("Hello, world!");
