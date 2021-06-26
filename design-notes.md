@@ -28,3 +28,6 @@ some tracking issue related to above? https://github.com/graphql-rust/juniper/is
 ### random
 
 https://github.com/teramotodaiki/remark-plain-text
+
+future is not send diagnostic:
+https://blog.rust-lang.org/inside-rust/2019/10/11/AsyncAwait-Not-Send-Error-Improvements.html
