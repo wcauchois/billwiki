@@ -27,10 +27,12 @@ async fn graphiql() -> HttpResponse {
 async fn graphql(
     st: web::Data<Arc<Schema>>,
     graphql_request: web::Json<GraphQLRequest>,
-    search_actor_addr: web::Data<schema::SearchActorAddr>
+    search_actor_addr: web::Data<schema::SearchActorAddr>,
+    store: web::Data<Arc<Mutex<Store>>>
 ) -> Result<HttpResponse, actix_web::Error> {
     let graphql_context = schema::GraphQLContext {
-        search_actor_addr: schema::SearchActorAddr::clone(&search_actor_addr)
+        search_actor_addr: schema::SearchActorAddr::clone(&search_actor_addr),
+        store: (*store.into_inner()).clone()
     };
     let res = graphql_request.execute(&st, &graphql_context).await;
     let body = serde_json::to_string(&res)?;
@@ -62,6 +64,7 @@ async fn main() -> anyhow::Result<()> {
         let server = HttpServer::new(move || {
             App::new()
                 .data(schema.clone())
+                .data(store.clone())
                 .wrap(middleware::Logger::default())
                 .data(schema::SearchActorAddr(search_actor_addr.clone()))
                 .wrap(

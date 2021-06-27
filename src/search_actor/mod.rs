@@ -65,7 +65,7 @@ impl SearchActor {
     fn reindex(&mut self) -> anyhow::Result<()> {
         let pages = {
             let store_guard = self.store.lock().unwrap();
-            store_guard.pages()?
+            store_guard.get_pages()?
         };
         let mut wtr = self.index.writer(1024 * 1024 * 128).unwrap();
 
@@ -96,6 +96,9 @@ impl Actor for SearchActor {
 
     fn started(&mut self, ctx: &mut SyncContext<Self>) {
         info!("Started SearchActor");
+        if let Err(err) = self.reindex() {
+            error!("Error during initial reindex: {:?}", err);
+        }
     }
 
     fn stopped(&mut self, ctx: &mut SyncContext<Self>) {

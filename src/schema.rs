@@ -1,4 +1,5 @@
 use crate::search_actor::{Reindex, Search, SearchActor, SearchResult};
+use crate::store::{Page, Store};
 use juniper::FieldResult;
 use juniper::{EmptySubscription, RootNode};
 use std::sync::{Arc, Mutex};
@@ -9,6 +10,7 @@ pub struct SearchActorAddr(pub Arc<Mutex<actix::Addr<SearchActor>>>);
 
 pub struct GraphQLContext {
     pub search_actor_addr: SearchActorAddr,
+    pub store: Arc<Mutex<Store>>,
 }
 
 impl juniper::Context for GraphQLContext {}
@@ -17,6 +19,20 @@ struct GraphQLSearchResult(SearchResult);
 
 #[juniper::graphql_object]
 impl GraphQLSearchResult {
+    fn name(&self) -> &str {
+        self.0.name.as_str()
+    }
+
+    fn content(&self) -> &str {
+        self.0.content.as_str()
+    }
+}
+
+struct GraphQLPage(Page);
+
+
+#[juniper::graphql_object]
+impl GraphQLPage {
     fn name(&self) -> &str {
         self.0.name.as_str()
     }
@@ -42,6 +58,20 @@ impl QueryRoot {
             .map(|r| GraphQLSearchResult(r))
             .collect())
     }
+
+    async fn page(
+        context: &GraphQLContext,
+        name: String,
+    ) -> FieldResult<GraphQLPage> {
+        let page = context.store.lock().unwrap().get_page(name.as_str())?;
+        Ok(GraphQLPage(page))
+    }
+}
+
+#[derive(juniper::GraphQLInputObject)]
+struct PageInput {
+    name: String,
+    content: String
 }
 
 #[juniper::graphql_object(context = GraphQLContext)]
@@ -50,6 +80,13 @@ impl MutationRoot {
         let addr = context.search_actor_addr.0.lock()?.downgrade();
         addr.upgrade().unwrap().send(Reindex).await?;
         Ok(true)
+    }
+
+    async fn update(context: &GraphQLContext, input: PageInput) -> FieldResult<GraphQLPage> {
+        let store = context.store.lock().unwrap();
+        store.update_page(input.name.as_str(), input.content.as_str())?;
+        let updated_page = store.get_page(input.name.as_str())?;
+        Ok(GraphQLPage(updated_page))
     }
 }
 

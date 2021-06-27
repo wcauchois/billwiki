@@ -1,5 +1,5 @@
 use git2::*;
-use std::path::Path;
+use std::{fs::File, path::Path};
 use anyhow::anyhow;
 
 pub struct Store {
@@ -15,7 +15,7 @@ pub struct Page {
 impl Store {
   pub fn new(path: &str) -> anyhow::Result<Store> {
     Ok(Store {
-      repository: Repository::init(path)?
+      repository: Repository::init_bare(path)?
     })
   }
 
@@ -31,10 +31,50 @@ impl Store {
     })
   }
 
-  pub fn pages(&self) -> anyhow::Result<Vec<Page>> {
-    let head_obj = self.repository.revparse_single("HEAD")?;
-    let tree = head_obj.peel_to_tree()?;
-    let pages = tree.iter().flat_map(|entry| {
+  fn name_to_path(&self, name: &str) -> String {
+    format!("{}.md", name)
+  }
+
+  pub fn update_page(&self, name: &str, content: &str) -> anyhow::Result<()> {
+    let path = self.name_to_path(name);
+
+    let head = self.repository.head()?;
+    let head_commit = head.peel_to_commit()?;
+    let head_tree = head.peel_to_tree()?;
+
+    let blob_oid = self.repository.blob(content.as_bytes())?;
+    let mut tree_builder = self.repository.treebuilder(Some(&head_tree))?;
+    tree_builder.insert(
+      path,
+      blob_oid,
+      0o100644
+    )?;
+    let tree_oid = tree_builder.write()?;
+    let new_tree = self.repository.find_tree(tree_oid)?;
+
+    let sig = Signature::now("BillWiki", "billwiki@example.com")?;
+    self.repository.commit(
+      Some("HEAD"),
+      &sig,
+      &sig,
+      format!("Update {}", name).as_str(),
+      &new_tree,
+      &[&head_commit]
+    )?;
+
+    Ok(())
+  }
+
+  pub fn get_page(&self, name: &str) -> anyhow::Result<Page> {
+    let path = self.name_to_path(name);
+    let head_tree = self.repository.head()?.peel_to_tree()?;
+    let entry = head_tree.get_path(Path::new(&path))?;
+    self.tree_entry_to_page(entry)
+  }
+
+  pub fn get_pages(&self) -> anyhow::Result<Vec<Page>> {
+    let head_tree = self.repository.head()?.peel_to_tree()?;
+    let pages = head_tree.iter().flat_map(|entry| {
       match self.tree_entry_to_page(entry) {
         Ok(page) => Some(page),
         Err(err) => {
