@@ -83,9 +83,21 @@ impl MutationRoot {
     }
 
     async fn update(context: &GraphQLContext, input: PageInput) -> FieldResult<GraphQLPage> {
-        let store = context.store.lock().unwrap();
-        store.update_page(input.name.as_str(), input.content.as_str())?;
-        let updated_page = store.get_page(input.name.as_str())?;
+        {
+            let store = context.store.lock().unwrap();
+            store.update_page(input.name.as_str(), input.content.as_str())?;
+        }
+
+        {
+            let addr = context.search_actor_addr.0.lock()?.downgrade();
+            addr.upgrade().unwrap().send(Reindex).await?;
+        }
+
+        let updated_page = {
+            let store = context.store.lock().unwrap();
+            store.get_page(input.name.as_str())?
+        };
+
         Ok(GraphQLPage(updated_page))
     }
 }
