@@ -31,3 +31,7 @@ https://github.com/teramotodaiki/remark-plain-text
 
 future is not send diagnostic:
 https://blog.rust-lang.org/inside-rust/2019/10/11/AsyncAwait-Not-Send-Error-Improvements.html
+
+## docker image building
+
+https://shaneutt.com/blog/rust-fast-small-docker-image-builds/
