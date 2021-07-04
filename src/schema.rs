@@ -33,6 +33,10 @@ struct GraphQLPage(Page);
 
 #[juniper::graphql_object]
 impl GraphQLPage {
+    fn id(&self) -> &str {
+        self.0.name.as_str()
+    }
+
     fn name(&self) -> &str {
         self.0.name.as_str()
     }
