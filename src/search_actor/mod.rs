@@ -1,12 +1,15 @@
 use crate::store::Store;
 use actix::prelude::*;
 use anyhow::anyhow;
+use htmlescape::encode_minimal;
+use std::cmp::min;
 use std::sync::{Arc, Mutex};
-use tantivy::doc;
+use tantivy::{SnippetGenerator, doc};
 use tantivy::{schema::*, Index};
 
 const NAME_FIELD: &str = "name";
 const CONTENT_FIELD: &str = "content";
+const SNIPPET_MAX_NUM_CHARS: usize = 150;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -33,8 +36,35 @@ pub struct SearchActor {
 
 #[derive(Debug)]
 pub struct SearchResult {
-    pub name: String,
-    pub content: String,
+    pub name_field: SearchResultField,
+    pub content_field: SearchResultField,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResultField {
+    pub text: String,
+    pub snippet_html: String,
+}
+
+impl SearchResultField {
+    fn create(doc: &Document, field: Field, snippet_generator: &SnippetGenerator) -> anyhow::Result<SearchResultField> {
+        let field_text = doc
+            .get_first(field)
+            .ok_or(anyhow!("Expected field"))?
+            .text()
+            .ok_or(anyhow!("Expected field to be text"))?;
+        let snippet = snippet_generator.snippet_from_doc(&doc);
+        let snippet_html = if snippet.highlighted().len() > 0 {
+            snippet.to_html()
+        } else {
+            // If there's no matching snippet, just return the first characters.
+            encode_minimal(&field_text[..min(field_text.len(), SNIPPET_MAX_NUM_CHARS)])
+        };
+        Ok(SearchResultField {
+            text: field_text.to_string(),
+            snippet_html,
+        })
+    }
 }
 
 impl SearchActor {
@@ -63,11 +93,16 @@ impl SearchActor {
     }
 
     fn reindex(&mut self) -> anyhow::Result<()> {
+        // Should potentially consider updating relevant documents instead of fully reindexing
+        // https://github.com/tantivy-search/tantivy/blob/main/examples/deleting_updating_documents.rs
+
         let pages = {
             let store_guard = self.store.lock().unwrap();
             store_guard.get_pages()?
         };
         let mut wtr = self.index.writer(1024 * 1024 * 128).unwrap();
+
+        wtr.delete_all_documents()?;
 
         let schema = self.index.schema();
         let name = schema.get_field(NAME_FIELD).unwrap();
@@ -125,34 +160,45 @@ impl Handler<Search> for SearchActor {
         let searcher = reader.searcher();
         let schema = self.index.schema();
 
-        let name = schema.get_field(NAME_FIELD).unwrap();
-        let content = schema.get_field(CONTENT_FIELD).unwrap();
+        let name_field = schema.get_field(NAME_FIELD).unwrap();
+        let content_field = schema.get_field(CONTENT_FIELD).unwrap();
 
-        let query_parser = tantivy::query::QueryParser::for_index(&self.index, vec![name, content]);
+        let query_parser = tantivy::query::QueryParser::for_index(&self.index, vec![name_field, content_field]);
         let query = query_parser.parse_query(msg.query.as_str())?;
 
         let top_docs: Vec<(tantivy::Score, tantivy::DocAddress)> =
             searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10))?;
 
         let mut results = Vec::<SearchResult>::with_capacity(top_docs.len());
+        let mut name_snippet_generator = SnippetGenerator::create(&searcher, &query, name_field)?;
+        name_snippet_generator.set_max_num_chars(SNIPPET_MAX_NUM_CHARS);
+        let mut content_snippet_generator = SnippetGenerator::create(&searcher, &query, content_field)?;
+        content_snippet_generator.set_max_num_chars(SNIPPET_MAX_NUM_CHARS);
         for (_score, doc_address) in top_docs {
             // Retrieve the actual content of documents given its `doc_address`.
             let retrieved_doc = searcher.doc(doc_address)?;
             let name = retrieved_doc
-                .get_first(name)
+                .get_first(name_field)
                 .ok_or(anyhow!("Expected name field"))?
                 .text()
                 .ok_or(anyhow!("Expected name to be text"))?;
             let content = retrieved_doc
-                .get_first(content)
+                .get_first(content_field)
                 .ok_or(anyhow!("Expected content field"))?
                 .text()
                 .ok_or(anyhow!("Expected content to be text"))?;
             let result = SearchResult {
-                name: name.to_string(),
-                content: content.to_string(),
+                name_field: SearchResultField::create(
+                    &retrieved_doc,
+                    name_field,
+                    &name_snippet_generator
+                )?,
+                content_field: SearchResultField::create(
+                    &retrieved_doc,
+                    content_field,
+                    &content_snippet_generator
+                )?,
             };
-            info!("Search result: {:?}", result);
             results.push(result);
         }
 

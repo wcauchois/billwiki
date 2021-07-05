@@ -1,4 +1,4 @@
-use crate::search_actor::{Reindex, Search, SearchActor, SearchResult};
+use crate::search_actor::{Reindex, Search, SearchActor, SearchResult, SearchResultField};
 use crate::store::{Page, Store};
 use juniper::FieldResult;
 use juniper::{EmptySubscription, RootNode};
@@ -15,23 +15,38 @@ pub struct GraphQLContext {
 
 impl juniper::Context for GraphQLContext {}
 
-struct GraphQLSearchResult(SearchResult);
+struct GraphQLSearchResultField(SearchResultField);
 
-#[juniper::graphql_object]
-impl GraphQLSearchResult {
-    fn name(&self) -> &str {
-        self.0.name.as_str()
+#[juniper::graphql_object(name = "SearchResultField")]
+impl GraphQLSearchResultField {
+    fn text(&self) -> &str {
+        self.0.text.as_str()
     }
 
-    fn content(&self) -> &str {
-        self.0.content.as_str()
+    fn snippet_html(&self) -> &str {
+        self.0.snippet_html.as_str()
+    }
+}
+
+struct GraphQLSearchResult(SearchResult);
+
+#[juniper::graphql_object(name = "SearchResult")]
+impl GraphQLSearchResult {
+    fn name_field(&self) -> GraphQLSearchResultField {
+        GraphQLSearchResultField(self.0.name_field.clone())
+    }
+
+    fn content_field(&self) -> GraphQLSearchResultField {
+        GraphQLSearchResultField(self.0.content_field.clone())
     }
 }
 
 struct GraphQLPage(Page);
 
 
-#[juniper::graphql_object]
+#[juniper::graphql_object(
+    name = "Page"
+)]
 impl GraphQLPage {
     fn id(&self) -> &str {
         self.0.name.as_str()
@@ -69,6 +84,16 @@ impl QueryRoot {
     ) -> FieldResult<GraphQLPage> {
         let page = context.store.lock().unwrap().get_page(name.as_str())?;
         Ok(GraphQLPage(page))
+    }
+
+    async fn page_title_completions(
+        context: &GraphQLContext
+    ) -> FieldResult<Vec<String>> {
+        let pages = context.store.lock().unwrap().get_pages()?;
+        Ok(pages
+            .into_iter()
+            .map(|p| p.name)
+            .collect())
     }
 }
 
