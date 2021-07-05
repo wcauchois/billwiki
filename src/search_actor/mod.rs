@@ -1,11 +1,12 @@
 use crate::store::Store;
 use actix::prelude::*;
 use anyhow::anyhow;
-use htmlescape::encode_minimal;
 use std::cmp::min;
+use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use tantivy::{SnippetGenerator, doc};
 use tantivy::{schema::*, Index};
+use juniper::GraphQLObject;
 
 const NAME_FIELD: &str = "name";
 const CONTENT_FIELD: &str = "content";
@@ -34,16 +35,35 @@ pub struct SearchActor {
     index: Index,
 }
 
-#[derive(Debug)]
+#[derive(Debug, GraphQLObject)]
 pub struct SearchResult {
     pub name_field: SearchResultField,
     pub content_field: SearchResultField,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, GraphQLObject)]
+pub struct TextHighlightRange {
+    pub start: i32,
+    pub end: i32,
+}
+
+impl TextHighlightRange {
+    fn from_range(range: &Range<usize>) -> TextHighlightRange {
+        TextHighlightRange {
+            start: range.start as i32,
+            end: range.end as i32
+        }
+    }
+}
+
+#[derive(Debug, GraphQLObject)]
 pub struct SearchResultField {
+    /// The full text of the field
     pub text: String,
-    pub snippet_html: String,
+    /// A matching fragment from the field
+    pub fragment: String,
+    /// A list of indices in `fragment` that should be highlighted to the user.
+    pub highlights: Vec<TextHighlightRange>,
 }
 
 impl SearchResultField {
@@ -54,15 +74,20 @@ impl SearchResultField {
             .text()
             .ok_or(anyhow!("Expected field to be text"))?;
         let snippet = snippet_generator.snippet_from_doc(&doc);
-        let snippet_html = if snippet.highlighted().len() > 0 {
-            snippet.to_html()
+        let fragment = if snippet.fragments().len() > 0 {
+            snippet.fragments()
         } else {
             // If there's no matching snippet, just return the first characters.
-            encode_minimal(&field_text[..min(field_text.len(), SNIPPET_MAX_NUM_CHARS)])
+            &field_text[..min(field_text.len(), SNIPPET_MAX_NUM_CHARS)]
         };
+        let highlights: Vec<TextHighlightRange> = snippet.highlighted()
+            .into_iter()
+            .map(|r| TextHighlightRange::from_range(r))
+            .collect();
         Ok(SearchResultField {
             text: field_text.to_string(),
-            snippet_html,
+            fragment: fragment.to_string(),
+            highlights
         })
     }
 }
@@ -129,14 +154,14 @@ impl SearchActor {
 impl Actor for SearchActor {
     type Context = SyncContext<Self>;
 
-    fn started(&mut self, ctx: &mut SyncContext<Self>) {
+    fn started(&mut self, _ctx: &mut SyncContext<Self>) {
         info!("Started SearchActor");
         if let Err(err) = self.reindex() {
             error!("Error during initial reindex: {:?}", err);
         }
     }
 
-    fn stopped(&mut self, ctx: &mut SyncContext<Self>) {
+    fn stopped(&mut self, _ctx: &mut SyncContext<Self>) {
         info!("Stopped SearchActor");
     }
 }
@@ -144,7 +169,7 @@ impl Actor for SearchActor {
 impl Handler<Reindex> for SearchActor {
     type Result = ();
 
-    fn handle(&mut self, msg: Reindex, ctx: &mut SyncContext<Self>) -> Self::Result {
+    fn handle(&mut self, _msg: Reindex, _ctx: &mut SyncContext<Self>) -> Self::Result {
         info!("Reindex message received");
         if let Err(err) = self.reindex() {
             error!("Error during reindex: {:?}", err);
@@ -155,7 +180,7 @@ impl Handler<Reindex> for SearchActor {
 impl Handler<Search> for SearchActor {
     type Result = anyhow::Result<Vec<SearchResult>>;
 
-    fn handle(&mut self, msg: Search, ctx: &mut SyncContext<Self>) -> Self::Result {
+    fn handle(&mut self, msg: Search, _ctx: &mut SyncContext<Self>) -> Self::Result {
         let reader = self.index.reader().unwrap();
         let searcher = reader.searcher();
         let schema = self.index.schema();
@@ -177,16 +202,6 @@ impl Handler<Search> for SearchActor {
         for (_score, doc_address) in top_docs {
             // Retrieve the actual content of documents given its `doc_address`.
             let retrieved_doc = searcher.doc(doc_address)?;
-            let name = retrieved_doc
-                .get_first(name_field)
-                .ok_or(anyhow!("Expected name field"))?
-                .text()
-                .ok_or(anyhow!("Expected name to be text"))?;
-            let content = retrieved_doc
-                .get_first(content_field)
-                .ok_or(anyhow!("Expected content field"))?
-                .text()
-                .ok_or(anyhow!("Expected content to be text"))?;
             let result = SearchResult {
                 name_field: SearchResultField::create(
                     &retrieved_doc,

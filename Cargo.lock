@@ -429,7 +429,6 @@ dependencies = [
  "anyhow",
  "env_logger",
  "git2",
- "htmlescape",
  "juniper",
  "log",
  "rust-embed",

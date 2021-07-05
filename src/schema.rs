@@ -1,4 +1,4 @@
-use crate::search_actor::{Reindex, Search, SearchActor, SearchResult, SearchResultField};
+use crate::search_actor::{Reindex, Search, SearchActor, SearchResult};
 use crate::store::{Page, Store};
 use juniper::FieldResult;
 use juniper::{EmptySubscription, RootNode};
@@ -14,32 +14,6 @@ pub struct GraphQLContext {
 }
 
 impl juniper::Context for GraphQLContext {}
-
-struct GraphQLSearchResultField(SearchResultField);
-
-#[juniper::graphql_object(name = "SearchResultField")]
-impl GraphQLSearchResultField {
-    fn text(&self) -> &str {
-        self.0.text.as_str()
-    }
-
-    fn snippet_html(&self) -> &str {
-        self.0.snippet_html.as_str()
-    }
-}
-
-struct GraphQLSearchResult(SearchResult);
-
-#[juniper::graphql_object(name = "SearchResult")]
-impl GraphQLSearchResult {
-    fn name_field(&self) -> GraphQLSearchResultField {
-        GraphQLSearchResultField(self.0.name_field.clone())
-    }
-
-    fn content_field(&self) -> GraphQLSearchResultField {
-        GraphQLSearchResultField(self.0.content_field.clone())
-    }
-}
 
 struct GraphQLPage(Page);
 
@@ -69,13 +43,10 @@ impl QueryRoot {
     async fn search(
         context: &GraphQLContext,
         query: String,
-    ) -> FieldResult<Vec<GraphQLSearchResult>> {
+    ) -> FieldResult<Vec<SearchResult>> {
         let addr = context.search_actor_addr.0.lock()?.downgrade();
-        let raw_results = addr.upgrade().unwrap().send(Search::new(query)).await??;
-        Ok(raw_results
-            .into_iter()
-            .map(|r| GraphQLSearchResult(r))
-            .collect())
+        let results = addr.upgrade().unwrap().send(Search::new(query)).await??;
+        Ok(results)
     }
 
     async fn page(

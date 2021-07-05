@@ -1,5 +1,5 @@
 use git2::*;
-use std::{fs::File, path::Path};
+use std::path::Path;
 use anyhow::anyhow;
 
 pub struct Store {
