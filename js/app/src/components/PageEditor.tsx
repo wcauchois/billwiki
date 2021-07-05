@@ -5,6 +5,9 @@ import 'codemirror/mode/markdown/markdown';
 import 'codemirror/addon/hint/show-hint';
 import { HintFunction } from 'codemirror';
 import { useCallback } from 'react';
+import { gql, useApolloClient } from '@apollo/client';
+
+import styles from "./PageEditor.module.scss";
 
 interface PageEditorProps {
   initialValue: string;
@@ -12,12 +15,19 @@ interface PageEditorProps {
   onSave(): void;
 }
 
+const pageTitleCompletionsListQuery = gql`
+  query pageTitleCompletionsList {
+    pageTitleCompletions
+  }
+`;
+
 export default function PageEditor({
   initialValue,
   onChange,
   onSave
 }: PageEditorProps) {
-  const hint: HintFunction = useCallback((cm, options) => {
+  const client = useApolloClient();
+  const hint: HintFunction = useCallback(async (cm, options) => {
     const cursor = cm.getCursor();
     const line = cm.getDoc().getLine(cursor.line);
     let startOfLinkIndex = cursor.ch;
@@ -29,13 +39,11 @@ export default function PageEditor({
       const start = startOfLinkIndex + 1;
       const end = cursor.ch;
       const searchText = line.substring(start, end);
-      const fakeOptions = [
-        'Home',
-        'Getting started',
-        'Engineering/Blah',
-        'Engineering/Baz'
-      ];
-      const filteredOptions = fakeOptions.filter((o) => o.toLowerCase().includes(searchText.toLowerCase()));
+      const { data } = await client.query({
+        query: pageTitleCompletionsListQuery
+      });
+      const options: string[] = data.pageTitleCompletions;
+      const filteredOptions = options.filter((o) => o.toLowerCase().includes(searchText.toLowerCase()));
       const finalHints: Hint[] = filteredOptions.map((o) => ({
         text: o,
         hint(cm, data, completion) {
@@ -55,15 +63,16 @@ export default function PageEditor({
         to: CodeMirror.Pos(cursor.line, end),
       }
     }
-  }, []);
+  }, [client]);
 
   return (
-    <div>
+    <div className={styles.main}>
       <CodeMirrorComponent
         value={initialValue}
         options={{
           mode: 'markdown',
           autofocus: true,
+          viewportMargin: Infinity, // Autoexpand
           extraKeys: {
             "Cmd-S": () => {
               onSave();

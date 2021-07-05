@@ -2,7 +2,7 @@ import { gql, useMutation, useQuery } from "@apollo/client";
 import { useCallback, useMemo } from "react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { convertMarkdownToHtml } from "../lib/markdown";
+import { convertMarkdownToComponent } from "../lib/markdown";
 import { useMoustrap as useMousetrap } from "../lib/mousetrap";
 import Button from "./Button";
 import PageEditor from "./PageEditor";
@@ -28,23 +28,22 @@ const updatePageMutation = gql`
 `;
 
 function PageMain({ page }: { page: any }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, rawSetEditing] = useState(false);
 
-  const pageHtml = useMemo(
-    () => convertMarkdownToHtml(page.content),
+  const pageComponent = useMemo(
+    () => convertMarkdownToComponent(page.content),
     [page.content]
   );
 
   const [updatePage] = useMutation(updatePageMutation);
 
   const [editedContent, setEditedContent] = useState(page.content);
-  const stopEditing = useCallback(() => {
+  const setEditing = useCallback((newEditing: boolean) => {
     setEditedContent(page.content);
-    setEditing(false);
+    rawSetEditing(newEditing);
   }, [page.content]);
-  const startEditing = useCallback(() => {
-    setEditing(true);
-  }, []);
+  const stopEditing = useCallback(() => setEditing(false), [setEditing]);
+  const startEditing = useCallback(() => setEditing(true), [setEditing]);
 
   useMousetrap('e', useCallback(() => {
     startEditing();
@@ -93,11 +92,9 @@ function PageMain({ page }: { page: any }) {
           }}
         />
       ) : (
-        <>
-          {pageHtml !== null && (
-            <div dangerouslySetInnerHTML={{ __html: pageHtml }} />
-          )}
-        </>
+        <div>
+          {pageComponent}
+        </div>
       )}
     </>
   );
