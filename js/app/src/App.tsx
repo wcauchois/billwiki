@@ -4,6 +4,7 @@ import { client } from './client';
 
 import styles from "./App.module.scss";
 import Page from './components/Page';
+import SearchResults from './components/SearchResults';
 
 function App() {
   return (
@@ -12,9 +13,10 @@ function App() {
         <BrowserRouter>
           <Switch>
             <Route exact path="/">
-              <Redirect to="/Home" />
+              <Redirect to="/wiki/Home" />
             </Route>
-            <Route path="/:name([a-zA-Z0-9_\-/]+)" component={Page} />
+            <Route exact path="/search" component={SearchResults} />
+            <Route path="/wiki/:name([a-zA-Z0-9_\-/]+)" component={Page} />
           </Switch>
         </BrowserRouter>
       </div>

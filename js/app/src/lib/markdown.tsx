@@ -15,7 +15,7 @@ interface WikiLinkOptions {
 export function convertMarkdownToComponent(mdText: string) {
   const wikiLinkOptions: WikiLinkOptions = {
     pageResolver: (pageName) => [pageName.replace(/ /g, "_")],
-    hrefTemplate: (permalink) => `/${permalink}`,
+    hrefTemplate: (permalink) => `/wiki/${permalink}`,
   };
 
   return unified()
