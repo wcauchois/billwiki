@@ -1,6 +1,12 @@
 @import '../node_modules/codemirror/lib/codemirror.css';
 @import '../node_modules/codemirror/addon/hint/show-hint.css';
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
 body {
   font-family: 'Helvetica Neue', sans-serif;
 }
+*/
