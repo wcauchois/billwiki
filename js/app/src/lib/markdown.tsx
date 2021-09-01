@@ -5,6 +5,7 @@ import { wikiLinkPlugin } from "remark-wiki-link";
 import rehype2react from "rehype-react";
 import React, { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import Header from "../components/system/Header";
 
 interface WikiLinkOptions {
   permalinks?: string[];
@@ -26,7 +27,13 @@ export function convertMarkdownToComponent(mdText: string) {
       createElement: React.createElement,
       components: {
         a: (props: any) => (
-          <Link to={props.href as string}>{props.children as any}</Link>
+          <Link to={props.href}>{props.children}</Link>
+        ),
+        h1: (props: any) => (
+          <Header level={1}>{props.children}</Header>
+        ),
+        h2: (props: any) => (
+          <Header level={1}>{props.children}</Header>
         ),
       },
     })

@@ -1,4 +1,4 @@
-import classnames from "classnames";
+import classNames from "classnames";
 import { ReactNode } from "react";
 
 interface ButtonProps {
@@ -14,13 +14,13 @@ export default function Button({
 }: ButtonProps) {
   const buttonStyle = primary ? "primary" : "secondary";
   const buttonStyles = {
-    primary: classnames(
+    primary: classNames(
       "bg-blue-600",
       "border-blue-800",
       "hover:bg-blue-500",
       "active:bg-blue-600",
     ),
-    secondary: classnames(
+    secondary: classNames(
       "bg-gray-600",
       "border-gray-800",
       "hover:bg-gray-500",
@@ -28,7 +28,7 @@ export default function Button({
     )
   };
 
-  const classes = classnames(
+  const classes = classNames(
     "border-solid",
     "border",
     "cursor-pointer",
@@ -40,6 +40,7 @@ export default function Button({
     "shadow",
     "text-white",
     "transition-colors",
+    "text-center",
     buttonStyles[buttonStyle]
   );
 

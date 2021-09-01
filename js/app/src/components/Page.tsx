@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { convertMarkdownToComponent } from "../lib/markdown";
 import { useMoustrap as useMousetrap } from "../lib/mousetrap";
-import Button from "./Button";
+import Button from "./system/Button";
+import Header from "./system/Header";
+import List from "./system/List";
 import PageEditor from "./PageEditor";
+import Rule from "./system/Rule";
 
 const pageDetailsQuery = gql`
   query pageDetails($name: String!) {
@@ -66,11 +69,12 @@ function PageMain({ page }: { page: any }) {
   };
 
   return (
-    <>
+    <List fluid items={[
       <div>
         {editing ? (
           <>
-            <Button onClick={stopEditing}>Cancel</Button>
+          <List horizontal items={[
+            <Button onClick={stopEditing}>Cancel</Button>,
             <Button
               onClick={() => {
                 savePage();
@@ -78,13 +82,15 @@ function PageMain({ page }: { page: any }) {
               primary
             >
               Save
-            </Button>
+            </Button>,
+          ]} />
           </>
         ) : (
           <Button onClick={startEditing}>Edit</Button>
         )}
-      </div>
-      {editing ? (
+      </div>,
+      <Rule />,
+      editing ? (
         <PageEditor
           initialValue={page.content}
           onChange={(newValue) => setEditedContent(newValue)}
@@ -96,8 +102,8 @@ function PageMain({ page }: { page: any }) {
         <div>
           {pageComponent}
         </div>
-      )}
-    </>
+      )
+    ]} />
   );
 }
 
@@ -113,7 +119,9 @@ export default function Page() {
 
   return (
     <div>
-      <h1>{pageName}</h1>
+      <Header level={1}>
+        {pageName}
+      </Header>
       {data && <PageMain page={data.page} />}
     </div>
   );
