@@ -25,7 +25,7 @@ export function convertMarkdownToComponent(mdText: string) {
     .use(rehype2react, {
       createElement: React.createElement,
       components: {
-        a: (props) => (
+        a: (props: any) => (
           <Link to={props.href as string}>{props.children as any}</Link>
         ),
       },

@@ -75,6 +75,7 @@ function PageMain({ page }: { page: any }) {
               onClick={() => {
                 savePage();
               }}
+              primary
             >
               Save
             </Button>
