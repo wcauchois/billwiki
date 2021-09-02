@@ -69,28 +69,28 @@ function PageMain({ page }: { page: any }) {
   };
 
   return (
-    <List fluid items={[
+    <List fluid>
       <div>
-        {editing ? (
-          <>
-          <List horizontal items={[
-            <Button onClick={stopEditing}>Cancel</Button>,
-            <Button
-              onClick={() => {
-                savePage();
-              }}
-              primary
-            >
-              Save
-            </Button>,
-          ]} />
-          </>
-        ) : (
-          <Button onClick={startEditing}>Edit</Button>
-        )}
-      </div>,
-      <Rule />,
-      editing ? (
+        <List horizontal>
+          {editing ? (
+            <>
+              <Button onClick={stopEditing}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  savePage();
+                }}
+                primary
+              >
+                Save
+              </Button>
+            </>
+          ) : (
+            <Button onClick={startEditing}>Edit</Button>
+          )}
+        </List>
+      </div>
+      <Rule />
+      {editing ? (
         <PageEditor
           initialValue={page.content}
           onChange={(newValue) => setEditedContent(newValue)}
@@ -102,8 +102,8 @@ function PageMain({ page }: { page: any }) {
         <div>
           {pageComponent}
         </div>
-      )
-    ]} />
+      )}
+    </List>
   );
 }
 

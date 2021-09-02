@@ -2,11 +2,11 @@ import classNames from "classnames";
 import { ReactNode } from "react";
 
 export default function List({
-  items,
+  children,
   fluid,
   horizontal
 }: {
-  items: ReactNode | ReactNode[],
+  children: ReactNode,
   fluid?: boolean;
   horizontal?: boolean;
 }) {
@@ -22,7 +22,7 @@ export default function List({
   );
   return (
     <div className={classes}>
-      {items}
+      {children}
     </div>
   );
 }
