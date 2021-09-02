@@ -9,28 +9,30 @@ import Header from "./system/Header";
 import List from "./system/List";
 import PageEditor from "./PageEditor";
 import Rule from "./system/Rule";
+import { pageFragment } from "../lib/fragments";
+import * as gqlTypes from "../generated/gqlTypes";
 
 const pageDetailsQuery = gql`
   query pageDetails($name: String!) {
     page(name: $name) {
-      id
-      name
-      content
+      ...page
     }
   }
+
+  ${pageFragment}
 `;
 
 const updatePageMutation = gql`
   mutation updatePage($input: PageInput!) {
     update(input: $input) {
-      id
-      name
-      content
+      ...page
     }
   }
+
+  ${pageFragment}
 `;
 
-function PageMain({ page }: { page: any }) {
+function PageMain({ page }: { page: gqlTypes.page }) {
   const [editing, rawSetEditing] = useState(false);
 
   const pageComponent = useMemo(
@@ -38,7 +40,10 @@ function PageMain({ page }: { page: any }) {
     [page.content]
   );
 
-  const [updatePage] = useMutation(updatePageMutation);
+  const [updatePage] = useMutation<
+    gqlTypes.updatePage,
+    gqlTypes.updatePageVariables
+  >(updatePageMutation);
 
   const [editedContent, setEditedContent] = useState(page.content);
   const setEditing = useCallback(
@@ -115,7 +120,7 @@ export default function Page() {
   const params = useParams<{ name: string }>();
   const pageName = params.name.replace(/_/g, " ");
 
-  const { loading, error, data } = useQuery(pageDetailsQuery, {
+  const { data } = useQuery(pageDetailsQuery, {
     variables: {
       name: pageName,
     },

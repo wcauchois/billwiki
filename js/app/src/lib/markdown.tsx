@@ -28,7 +28,9 @@ export function convertMarkdownToComponent(mdText: string) {
       components: {
         a: (props: any) => <Link to={props.href}>{props.children}</Link>,
         h1: (props: any) => <Header level={1}>{props.children}</Header>,
-        h2: (props: any) => <Header level={1}>{props.children}</Header>,
+        h2: (props: any) => <Header level={2}>{props.children}</Header>,
+        h3: (props: any) => <Header level={3}>{props.children}</Header>,
+        h4: (props: any) => <Header level={4}>{props.children}</Header>,
       },
     })
     .processSync(mdText).result as ReactNode;
