@@ -1,10 +1,10 @@
-import { ApolloProvider } from '@apollo/client';
-import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom';
-import { client } from './client';
+import { ApolloProvider } from "@apollo/client";
+import { BrowserRouter, Redirect, Route, Switch } from "react-router-dom";
+import { client } from "./client";
 
 import styles from "./App.module.scss";
-import Page from './components/Page';
-import SearchResults from './components/SearchResults';
+import Page from "./components/Page";
+import SearchResults from "./components/SearchResults";
 
 function App() {
   return (

@@ -7,5 +7,5 @@ export function useMoustrap(key: string, callback: () => void) {
     return () => {
       Mousetrap.unbind(key);
     };
-  }, [key, callback])
+  }, [key, callback]);
 }

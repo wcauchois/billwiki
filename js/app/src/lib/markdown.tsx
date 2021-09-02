@@ -26,15 +26,9 @@ export function convertMarkdownToComponent(mdText: string) {
     .use(rehype2react, {
       createElement: React.createElement,
       components: {
-        a: (props: any) => (
-          <Link to={props.href}>{props.children}</Link>
-        ),
-        h1: (props: any) => (
-          <Header level={1}>{props.children}</Header>
-        ),
-        h2: (props: any) => (
-          <Header level={1}>{props.children}</Header>
-        ),
+        a: (props: any) => <Link to={props.href}>{props.children}</Link>,
+        h1: (props: any) => <Header level={1}>{props.children}</Header>,
+        h2: (props: any) => <Header level={1}>{props.children}</Header>,
       },
     })
     .processSync(mdText).result as ReactNode;

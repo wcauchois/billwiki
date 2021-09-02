@@ -1,8 +1,8 @@
-import { gql, useQuery } from '@apollo/client';
-import * as qs from 'query-string';
-import React from 'react';
-import { useMemo } from 'react';
-import { Link, useHistory, useLocation } from 'react-router-dom';
+import { gql, useQuery } from "@apollo/client";
+import * as qs from "query-string";
+import React from "react";
+import { useMemo } from "react";
+import { Link, useHistory, useLocation } from "react-router-dom";
 
 import styles from "./SearchResults.module.scss";
 
@@ -32,18 +32,32 @@ const searchQuery = gql`
   }
 `;
 
-function HighlightedText({ fragment, highlights }: {
-  fragment: string,
-  highlights: Array<{ start: number, end: number }>
+function HighlightedText({
+  fragment,
+  highlights,
+}: {
+  fragment: string;
+  highlights: Array<{ start: number; end: number }>;
 }) {
   // Inspiration: https://docs.rs/tantivy/0.15.3/src/tantivy/snippet/mod.rs.html#93-95
   let result = <React.Fragment />;
   let startFrom = 0;
   for (const highlight of highlights) {
-    result = <>{result}{fragment.substring(startFrom, highlight.start)}<strong>{fragment.substring(highlight.start, highlight.end)}</strong></>;
+    result = (
+      <>
+        {result}
+        {fragment.substring(startFrom, highlight.start)}
+        <strong>{fragment.substring(highlight.start, highlight.end)}</strong>
+      </>
+    );
     startFrom = highlight.end;
   }
-  result = <>{result}{fragment.substring(startFrom)}</>;
+  result = (
+    <>
+      {result}
+      {fragment.substring(startFrom)}
+    </>
+  );
   return result;
 }
 
@@ -56,7 +70,10 @@ function SingleResult({ result }: { result: any }) {
       <Link to={pageLink} className={styles.resultTitle}>
         <HighlightedText {...result.nameField} />
       </Link>
-      <pre className={styles.resultContent} onClick={() => history.push(pageLink)}>
+      <pre
+        className={styles.resultContent}
+        onClick={() => history.push(pageLink)}
+      >
         <HighlightedText {...result.contentField} />
       </pre>
     </li>
@@ -66,7 +83,9 @@ function SingleResult({ result }: { result: any }) {
 function SearchResultsMain({ results }: { results: any[] }) {
   return (
     <ul className={styles.resultList}>
-      {results.map((result, i) => <SingleResult key={i} result={result} />)}
+      {results.map((result, i) => (
+        <SingleResult key={i} result={result} />
+      ))}
     </ul>
   );
 }
@@ -75,18 +94,16 @@ export default function SearchResults() {
   const location = useLocation();
   const query = useMemo(() => {
     const parsed = qs.parse(location.search);
-    return (parsed.q || '') as string;
+    return (parsed.q || "") as string;
   }, [location]);
 
   const { data, loading } = useQuery(searchQuery, {
     variables: {
-      query
-    }
+      query,
+    },
   });
 
   return (
-    <div>
-      {!loading && data && <SearchResultsMain results={data.search} />}
-    </div>
+    <div>{!loading && data && <SearchResultsMain results={data.search} />}</div>
   );
 }

@@ -41,16 +41,22 @@ function PageMain({ page }: { page: any }) {
   const [updatePage] = useMutation(updatePageMutation);
 
   const [editedContent, setEditedContent] = useState(page.content);
-  const setEditing = useCallback((newEditing: boolean) => {
-    setEditedContent(page.content);
-    rawSetEditing(newEditing);
-  }, [page.content]);
+  const setEditing = useCallback(
+    (newEditing: boolean) => {
+      setEditedContent(page.content);
+      rawSetEditing(newEditing);
+    },
+    [page.content]
+  );
   const stopEditing = useCallback(() => setEditing(false), [setEditing]);
   const startEditing = useCallback(() => setEditing(true), [setEditing]);
 
-  useMousetrap('e', useCallback(() => {
-    startEditing();
-  }, [startEditing]));
+  useMousetrap(
+    "e",
+    useCallback(() => {
+      startEditing();
+    }, [startEditing])
+  );
 
   const savePage = async () => {
     try {
@@ -99,9 +105,7 @@ function PageMain({ page }: { page: any }) {
           }}
         />
       ) : (
-        <div>
-          {pageComponent}
-        </div>
+        <div>{pageComponent}</div>
       )}
     </List>
   );
@@ -119,9 +123,7 @@ export default function Page() {
 
   return (
     <div>
-      <Header level={1}>
-        {pageName}
-      </Header>
+      <Header level={1}>{pageName}</Header>
       {data && <PageMain page={data.page} />}
     </div>
   );

@@ -7,16 +7,7 @@ export interface HeaderProps {
 }
 
 export default function Header({ children }: HeaderProps) {
-  const classes = classNames(
-    "text-3xl",
-    "font-bold",
-    "underline",
-    "mb-2"
-  );
+  const classes = classNames("text-3xl", "font-bold", "underline", "mb-2");
 
-  return (
-    <div className={classes}>
-      {children}
-    </div>
-  );
+  return <div className={classes}>{children}</div>;
 }
