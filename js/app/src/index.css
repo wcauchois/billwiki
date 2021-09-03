@@ -5,8 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-body {
-  font-family: 'Helvetica Neue', sans-serif;
+code {
+  font-size: 14px;
 }
-*/

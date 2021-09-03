@@ -6,6 +6,7 @@ import rehype2react from "rehype-react";
 import React, { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/system/Header";
+import rehypeHighlight from "rehype-highlight";
 
 interface WikiLinkOptions {
   permalinks?: string[];
@@ -23,6 +24,7 @@ export function convertMarkdownToComponent(mdText: string) {
     .use(markdown)
     .use(wikiLinkPlugin, wikiLinkOptions)
     .use(remark2rehype)
+    .use(rehypeHighlight as any)
     .use(rehype2react, {
       createElement: React.createElement,
       components: {
