@@ -14,7 +14,7 @@ in  GithubActions.Workflow::{
               , uses = Some "dhall-lang/setup-dhall@v4.2.0"
               , `with` = Some
                   ( toMap
-                      { version = "1.28.0"
+                      { version = "1.40.1"
                       , github_token = "\${{ github.token }}"
                       }
                   )
