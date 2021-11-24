@@ -16,7 +16,9 @@ use juniper::http::GraphQLRequest;
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
 use std::borrow::Cow;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use structopt::StructOpt;
 
 const PORT: u16 = 3010;
 
@@ -72,14 +74,28 @@ fn dist(path: web::Path<String>) -> HttpResponse {
     handle_embedded_file(&path.0)
 }
 
+#[derive(StructOpt, Debug)]
+#[structopt()]
+struct Opt {
+    /// Port for the server to listen on.
+    #[structopt(short = "P", long, default_value = "3010", env = "PORT")]
+    port: u32,
+
+    /// Path to a bare Git repository on the filesystem.
+    #[structopt(short, long, parse(from_os_str))]
+    path: PathBuf,
+}
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 
-    info!("Starting server on port {}", PORT);
+    let opt = Opt::from_args();
 
-    let store = Arc::new(Mutex::new(Store::new("devwiki")?));
+    info!("Access the application at http://localhost:{}", opt.port);
+
+    let store = Arc::new(Mutex::new(Store::new(&opt.path)?));
     let schema = Arc::new(create_schema());
     let system = actix::System::new();
 
@@ -111,7 +127,7 @@ async fn main() -> anyhow::Result<()> {
                 .service(web::resource("/").route(web::get().to(index)))
                 .service(web::resource("/{_:.*}").route(web::get().to(dist)))
         })
-        .bind("127.0.0.1:3010")? // TODO: Use PORT
+        .bind(format!("0.0.0.0:{}", opt.port))?
         .run();
 
         server.await.unwrap();

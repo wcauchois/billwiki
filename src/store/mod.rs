@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use git2::*;
 use std::path::Path;
+use std::path::PathBuf;
 
 pub struct Store {
     repository: Repository,
@@ -13,7 +14,7 @@ pub struct Page {
 }
 
 impl Store {
-    pub fn new(path: &str) -> anyhow::Result<Store> {
+    pub fn new(path: &PathBuf) -> anyhow::Result<Store> {
         Ok(Store {
             repository: Repository::init_bare(path)?,
         })
