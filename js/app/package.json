@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "PORT=3011 craco start",
+    "start": "PORT=3011 REACT_APP_GRAPHQL_ENDPOINT=http://localhost:3010/graphql craco start",
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
