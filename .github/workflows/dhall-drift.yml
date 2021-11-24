@@ -12,7 +12,7 @@ jobs:
         run: "make clean && make"
       - name: Check for any changes
         run: |2
-            test -n "$(git status --porcelain)"
+            test -z "$(git status --porcelain)"
 name: Check Dhall Drift
 on:
   push: {}

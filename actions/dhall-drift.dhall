@@ -20,7 +20,7 @@ in  GithubActions.Workflow::{
                   )
               }
             , GithubActions.Step::{
-              , name = Some "Make Dhall test"
+              , name = Some "Make Dhall"
               , run = Some "make clean && make"
               }
             , GithubActions.Step::{
@@ -28,7 +28,7 @@ in  GithubActions.Workflow::{
               -- Test for changes in working dir: https://stackoverflow.com/a/5737794
               , run = Some
                   ''
-                    test -n "$(git status --porcelain)"
+                    test -z "$(git status --porcelain)"
                   ''
               }
             ]
