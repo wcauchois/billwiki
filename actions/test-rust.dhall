@@ -11,6 +11,14 @@ in  GithubActions.Workflow::{
           , runs-on = GithubActions.RunsOn.Type.ubuntu-latest
           , steps =
             [ GithubActions.steps.actions/checkout
+            , GithubActions.Step::{
+              , name = Some "Create empty JS builddir"
+              , run = Some
+                  ''
+                    mkdir js/app/build
+                    touch js/app/build/index.html
+                  ''
+              }
             , RustActions.install-toolchain "1.54.0"
             , RustActions.cargo-command "test"
             ]

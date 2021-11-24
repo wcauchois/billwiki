@@ -4,6 +4,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: "actions/checkout@v2"
+      - name: Create empty JS builddir
+        run: |2
+            mkdir js/app/build
+            touch js/app/build/index.html
       - name: Install stable toolchain
         uses: "actions-rs/toolchain@v1"
         with:
