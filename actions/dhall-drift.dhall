@@ -20,7 +20,7 @@ in  GithubActions.Workflow::{
                   )
               }
             , GithubActions.Step::{
-              , name = Some "Make Dhall test"
+              , name = Some "Make Dhall"
               , run = Some "make clean && make"
               }
             , GithubActions.Step::{
