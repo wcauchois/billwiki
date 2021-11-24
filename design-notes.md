@@ -43,3 +43,5 @@ https://github.com/gollum/gollum/wiki
 https://en.wikipedia.org/wiki/Battle_of_Dunbar_(1650)
 
 icons: https://useiconic.com/open
+
+https://github.com/pyros2097/rust-embed/blob/master/examples/actix.rs

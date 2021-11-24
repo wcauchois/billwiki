@@ -1,6 +1,6 @@
 mod schema;
-mod store;
 mod search_actor;
+mod store;
 
 use crate::schema::{create_schema, Schema};
 use crate::store::Store;
@@ -8,12 +8,15 @@ use crate::store::Store;
 #[macro_use]
 extern crate log;
 
-use std::sync::{Arc, Mutex};
+use actix::prelude::*;
 use actix_cors::Cors;
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{body::Body, middleware, web, App, HttpResponse, HttpServer};
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
-use actix::prelude::*;
+use mime_guess::from_path;
+use rust_embed::RustEmbed;
+use std::borrow::Cow;
+use std::sync::{Arc, Mutex};
 
 const PORT: u16 = 3010;
 
@@ -28,17 +31,45 @@ async fn graphql(
     st: web::Data<Arc<Schema>>,
     graphql_request: web::Json<GraphQLRequest>,
     search_actor_addr: web::Data<schema::SearchActorAddr>,
-    store: web::Data<Arc<Mutex<Store>>>
+    store: web::Data<Arc<Mutex<Store>>>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let graphql_context = schema::GraphQLContext {
         search_actor_addr: schema::SearchActorAddr::clone(&search_actor_addr),
-        store: (*store.into_inner()).clone()
+        store: (*store.into_inner()).clone(),
     };
     let res = graphql_request.execute(&st, &graphql_context).await;
     let body = serde_json::to_string(&res)?;
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .body(body))
+}
+
+#[derive(RustEmbed)]
+#[folder = "js/app/build/"]
+struct Asset;
+
+fn handle_embedded_file(path: &str) -> HttpResponse {
+    match Asset::get(path) {
+        Some(content) => {
+            let body: Body = match content {
+                Cow::Borrowed(bytes) => bytes.into(),
+                Cow::Owned(bytes) => bytes.into(),
+            };
+            HttpResponse::Ok()
+                .content_type(from_path(path).first_or_octet_stream().as_ref())
+                .body(body)
+        }
+        None if path != "index.html" => handle_embedded_file("index.html"),
+        None => HttpResponse::NotFound().body("404 Not Found"),
+    }
+}
+
+fn index() -> HttpResponse {
+    handle_embedded_file("index.html")
+}
+
+fn dist(path: web::Path<String>) -> HttpResponse {
+    handle_embedded_file(&path.0)
 }
 
 #[actix_web::main]
@@ -73,10 +104,12 @@ async fn main() -> anyhow::Result<()> {
                         .allowed_header(actix_web::http::header::CONTENT_TYPE)
                         .allow_any_origin()
                         .supports_credentials()
-                        .max_age(3600)
+                        .max_age(3600),
                 )
                 .service(web::resource("/graphql").route(web::post().to(graphql)))
                 .service(web::resource("/graphiql").route(web::get().to(graphiql)))
+                .service(web::resource("/").route(web::get().to(index)))
+                .service(web::resource("/{_:.*}").route(web::get().to(dist)))
         })
         .bind("127.0.0.1:3010")? // TODO: Use PORT
         .run();

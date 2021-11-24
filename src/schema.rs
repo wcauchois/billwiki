@@ -17,10 +17,7 @@ impl juniper::Context for GraphQLContext {}
 
 struct GraphQLPage(Page);
 
-
-#[juniper::graphql_object(
-    name = "Page"
-)]
+#[juniper::graphql_object(name = "Page")]
 impl GraphQLPage {
     fn id(&self) -> &str {
         self.0.name.as_str()
@@ -40,38 +37,27 @@ pub struct MutationRoot;
 
 #[juniper::graphql_object(context = GraphQLContext)]
 impl QueryRoot {
-    async fn search(
-        context: &GraphQLContext,
-        query: String,
-    ) -> FieldResult<Vec<SearchResult>> {
+    async fn search(context: &GraphQLContext, query: String) -> FieldResult<Vec<SearchResult>> {
         let addr = context.search_actor_addr.0.lock()?.downgrade();
         let results = addr.upgrade().unwrap().send(Search::new(query)).await??;
         Ok(results)
     }
 
-    async fn page(
-        context: &GraphQLContext,
-        name: String,
-    ) -> FieldResult<GraphQLPage> {
+    async fn page(context: &GraphQLContext, name: String) -> FieldResult<GraphQLPage> {
         let page = context.store.lock().unwrap().get_page(name.as_str())?;
         Ok(GraphQLPage(page))
     }
 
-    async fn page_title_completions(
-        context: &GraphQLContext
-    ) -> FieldResult<Vec<String>> {
+    async fn page_title_completions(context: &GraphQLContext) -> FieldResult<Vec<String>> {
         let pages = context.store.lock().unwrap().get_pages()?;
-        Ok(pages
-            .into_iter()
-            .map(|p| p.name)
-            .collect())
+        Ok(pages.into_iter().map(|p| p.name).collect())
     }
 }
 
 #[derive(juniper::GraphQLInputObject)]
 struct PageInput {
     name: String,
-    content: String
+    content: String,
 }
 
 #[juniper::graphql_object(context = GraphQLContext)]

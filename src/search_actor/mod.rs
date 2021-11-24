@@ -1,12 +1,12 @@
 use crate::store::Store;
 use actix::prelude::*;
 use anyhow::anyhow;
+use juniper::GraphQLObject;
 use std::cmp::min;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
-use tantivy::{SnippetGenerator, doc};
+use tantivy::{doc, SnippetGenerator};
 use tantivy::{schema::*, Index};
-use juniper::GraphQLObject;
 
 const NAME_FIELD: &str = "name";
 const CONTENT_FIELD: &str = "content";
@@ -51,7 +51,7 @@ impl TextHighlightRange {
     fn from_range(range: &Range<usize>) -> TextHighlightRange {
         TextHighlightRange {
             start: range.start as i32,
-            end: range.end as i32
+            end: range.end as i32,
         }
     }
 }
@@ -67,7 +67,11 @@ pub struct SearchResultField {
 }
 
 impl SearchResultField {
-    fn create(doc: &Document, field: Field, snippet_generator: &SnippetGenerator) -> anyhow::Result<SearchResultField> {
+    fn create(
+        doc: &Document,
+        field: Field,
+        snippet_generator: &SnippetGenerator,
+    ) -> anyhow::Result<SearchResultField> {
         let field_text = doc
             .get_first(field)
             .ok_or(anyhow!("Expected field"))?
@@ -80,14 +84,15 @@ impl SearchResultField {
             // If there's no matching snippet, just return the first characters.
             &field_text[..min(field_text.len(), SNIPPET_MAX_NUM_CHARS)]
         };
-        let highlights: Vec<TextHighlightRange> = snippet.highlighted()
+        let highlights: Vec<TextHighlightRange> = snippet
+            .highlighted()
             .into_iter()
             .map(|r| TextHighlightRange::from_range(r))
             .collect();
         Ok(SearchResultField {
             text: field_text.to_string(),
             fragment: fragment.to_string(),
-            highlights
+            highlights,
         })
     }
 }
@@ -188,7 +193,8 @@ impl Handler<Search> for SearchActor {
         let name_field = schema.get_field(NAME_FIELD).unwrap();
         let content_field = schema.get_field(CONTENT_FIELD).unwrap();
 
-        let query_parser = tantivy::query::QueryParser::for_index(&self.index, vec![name_field, content_field]);
+        let query_parser =
+            tantivy::query::QueryParser::for_index(&self.index, vec![name_field, content_field]);
         let query = query_parser.parse_query(msg.query.as_str())?;
 
         let top_docs: Vec<(tantivy::Score, tantivy::DocAddress)> =
@@ -197,7 +203,8 @@ impl Handler<Search> for SearchActor {
         let mut results = Vec::<SearchResult>::with_capacity(top_docs.len());
         let mut name_snippet_generator = SnippetGenerator::create(&searcher, &query, name_field)?;
         name_snippet_generator.set_max_num_chars(SNIPPET_MAX_NUM_CHARS);
-        let mut content_snippet_generator = SnippetGenerator::create(&searcher, &query, content_field)?;
+        let mut content_snippet_generator =
+            SnippetGenerator::create(&searcher, &query, content_field)?;
         content_snippet_generator.set_max_num_chars(SNIPPET_MAX_NUM_CHARS);
         for (_score, doc_address) in top_docs {
             // Retrieve the actual content of documents given its `doc_address`.
@@ -206,12 +213,12 @@ impl Handler<Search> for SearchActor {
                 name_field: SearchResultField::create(
                     &retrieved_doc,
                     name_field,
-                    &name_snippet_generator
+                    &name_snippet_generator,
                 )?,
                 content_field: SearchResultField::create(
                     &retrieved_doc,
                     content_field,
-                    &content_snippet_generator
+                    &content_snippet_generator,
                 )?,
             };
             results.push(result);
