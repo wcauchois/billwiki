@@ -11,11 +11,8 @@ RUN yarn install
 COPY js/app ./
 RUN yarn build
 
-FROM rust:1.54.0 AS rust-build
-
-RUN apt-get update
-RUN apt-get install musl-tools -y
-RUN rustup target add x86_64-unknown-linux-musl
+# https://github.com/clux/muslrust
+FROM clux/muslrust:1.54.0 AS rust-build
 
 WORKDIR /app
 COPY Cargo.toml ./
@@ -23,7 +20,7 @@ COPY Cargo.lock ./
 COPY src src
 RUN mkdir -p js/app
 COPY --from=node-build /app/build js/app/build
-RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
+RUN cargo build --release --target=x86_64-unknown-linux-musl
 
 FROM alpine:latest
 WORKDIR /app
