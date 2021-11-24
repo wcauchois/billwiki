@@ -1,6 +1,8 @@
 .PHONY: dhall-format all clean
 
-all: .github/workflows/test-rust.yml
+actions = test-rust dhall-drift
+
+all: $(addsuffix .yml,$(addprefix .github/workflows/,$(actions)))
 
 clean:
 	rm .github/workflows/*.yml

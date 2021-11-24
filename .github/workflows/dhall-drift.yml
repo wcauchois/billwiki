@@ -1,0 +1,18 @@
+jobs:
+  check-drift:
+    name: Check Drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "dhall-lang/setup-dhall@v4"
+        with:
+          github_token: "${{ github.token }}"
+          version: '1.28.0'
+      - name: Make Dhall
+        run: make
+      - name: Check for any changes
+        run: |2
+            test -n "$(git status --porcelain)"
+name: Check Dhall Drift
+on:
+  push: {}

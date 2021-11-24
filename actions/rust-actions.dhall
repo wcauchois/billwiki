@@ -8,7 +8,7 @@ in  { install-toolchain =
           , `with` = Some
               ( toMap
                   { profile = "minimal"
-                  , toolchain = "1.54.0"
+                  , toolchain = version
                   , override = "true"
                   }
               )
