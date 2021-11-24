@@ -2,8 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "cargo",
-			"command": "run",
+			"type": "shell",
+			"command": "cargo",
+			"args": [
+				"run"
+			],
 			"group": {
 				"kind": "test",
 				"isDefault": true

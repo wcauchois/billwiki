@@ -7,8 +7,6 @@ import { HintFunction } from "codemirror";
 import { useCallback } from "react";
 import { gql, useApolloClient } from "@apollo/client";
 
-import styles from "./PageEditor.module.scss";
-
 interface PageEditorProps {
   initialValue: string;
   onChange(newValue: string): void;
@@ -75,7 +73,7 @@ export default function PageEditor({
   );
 
   return (
-    <div className={styles.main}>
+    <div className="p-5 border border-solid rounded">
       <CodeMirrorComponent
         value={initialValue}
         options={{

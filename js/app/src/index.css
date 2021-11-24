@@ -8,3 +8,12 @@
 code {
   font-size: 14px;
 }
+
+.CodeMirror {
+  font-size: 14px;
+  height: auto; /* Autoexpand */
+}
+
+.CodeMirror-hints {
+  font-size: 14px;
+}

@@ -1,16 +1,17 @@
-import { gql, useMutation, useQuery } from "@apollo/client";
-import { useCallback, useMemo } from "react";
+import { gql, useQuery } from "@apollo/client";
+import { ReactNode, useCallback, useMemo } from "react";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 import { convertMarkdownToComponent } from "../lib/markdown";
 import { useMoustrap as useMousetrap } from "../lib/mousetrap";
-import Button from "./system/Button";
 import Header from "./system/Header";
-import List from "./system/List";
 import PageEditor from "./PageEditor";
-import Rule from "./system/Rule";
 import { pageFragment } from "../lib/fragments";
 import * as gqlTypes from "../generated/gqlTypes";
+import classNames from "classnames";
+import TextInput from "./system/TextInput";
+import Button from "./system/Button";
+import { useUpdatePage } from "../lib/mutations";
 
 const pageDetailsQuery = gql`
   query pageDetails($name: String!) {
@@ -22,45 +23,116 @@ const pageDetailsQuery = gql`
   ${pageFragment}
 `;
 
-const updatePageMutation = gql`
-  mutation updatePage($input: PageInput!) {
-    update(input: $input) {
-      ...page
-    }
-  }
+function PageControlTab({
+  children,
+  active,
+  onClick,
+}: {
+  children: ReactNode;
+  active?: boolean;
+  onClick?(): void;
+}) {
+  const classes = classNames(
+    "border-solid border-2 px-6 py-1 cursor-pointer last:border-l-0 border-b-0 flex items-center text-lg",
+    !active && "bg-gradient-to-b from-white via-white to-gray-200",
+    active && "font-bold"
+  );
+  return (
+    <div className={classes} onClick={onClick}>
+      {children}
+    </div>
+  );
+}
 
-  ${pageFragment}
-`;
+type PageMode = "read" | "edit";
+
+function PageControls({
+  mode,
+  onModeChanged,
+  pageName,
+  onSearch,
+  onNewPage,
+}: {
+  mode: PageMode;
+  onModeChanged(newMode: PageMode): void;
+  pageName: string;
+  onSearch(searchText: string): void;
+  onNewPage(): void;
+}) {
+  return (
+    <div className="flex justify-between border-b-2 border-solid mb-4">
+      <div>
+        <Header level={1}>{pageName}</Header>
+      </div>
+      <div className="flex">
+        <div className="flex items-center">
+          <Button onClick={onNewPage}>New Page</Button>
+        </div>
+        <div className="flex mx-4">
+          <PageControlTab
+            active={mode === "read"}
+            onClick={() => {
+              onModeChanged("read");
+            }}
+          >
+            Read
+          </PageControlTab>
+          <PageControlTab
+            active={mode === "edit"}
+            onClick={() => {
+              onModeChanged("edit");
+            }}
+          >
+            Edit
+          </PageControlTab>
+        </div>
+        <div className="flex items-center w-60">
+          <TextInput
+            placeholder="Search"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onSearch(e.currentTarget.value);
+              }
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PageMain({ page }: { page: gqlTypes.page }) {
-  const [editing, rawSetEditing] = useState(false);
+  const [mode, setRawMode] = useState<PageMode>("read");
+  const history = useHistory();
 
   const pageComponent = useMemo(
     () => convertMarkdownToComponent(page.content),
     [page.content]
   );
 
-  const [updatePage] = useMutation<
-    gqlTypes.updatePage,
-    gqlTypes.updatePageVariables
-  >(updatePageMutation);
+  const onSearch = useCallback(
+    (searchText: string) => {
+      history.push(`/search?q=${encodeURIComponent(searchText)}`);
+    },
+    [history]
+  );
+
+  const [updatePage] = useUpdatePage();
 
   const [editedContent, setEditedContent] = useState(page.content);
-  const setEditing = useCallback(
-    (newEditing: boolean) => {
+  const setMode = useCallback(
+    (newMode: PageMode) => {
       setEditedContent(page.content);
-      rawSetEditing(newEditing);
+      setRawMode(newMode);
     },
     [page.content]
   );
-  const stopEditing = useCallback(() => setEditing(false), [setEditing]);
-  const startEditing = useCallback(() => setEditing(true), [setEditing]);
 
   useMousetrap(
     "e",
     useCallback(() => {
-      startEditing();
-    }, [startEditing])
+      setMode("edit");
+    }, [setMode])
   );
 
   const savePage = async () => {
@@ -73,46 +145,46 @@ function PageMain({ page }: { page: gqlTypes.page }) {
           },
         },
       });
-      stopEditing();
+      setMode("read");
     } catch (err) {
-      window.alert(err.message);
+      window.alert((err as any).message);
     }
   };
 
   return (
-    <List fluid>
-      <div>
-        <List horizontal>
-          {editing ? (
-            <>
-              <Button onClick={stopEditing}>Cancel</Button>
-              <Button
-                onClick={() => {
-                  savePage();
-                }}
-                primary
-              >
-                Save
-              </Button>
-            </>
-          ) : (
-            <Button onClick={startEditing}>Edit</Button>
-          )}
-        </List>
-      </div>
-      <Rule />
-      {editing ? (
-        <PageEditor
-          initialValue={page.content}
-          onChange={(newValue) => setEditedContent(newValue)}
-          onSave={() => {
-            savePage();
-          }}
-        />
-      ) : (
-        <div>{pageComponent}</div>
+    <div>
+      <PageControls
+        pageName={page.name}
+        mode={mode}
+        onModeChanged={(newMode) => setMode(newMode)}
+        onSearch={onSearch}
+        onNewPage={() => {
+          history.push(`/new`);
+        }}
+      />
+      {mode === "edit" && (
+        <div className="flex flex-col">
+          <PageEditor
+            initialValue={page.content}
+            onChange={(newValue) => setEditedContent(newValue)}
+            onSave={() => {
+              savePage();
+            }}
+          />
+          <div className="flex justify-end mt-2">
+            <Button
+              primary
+              onClick={() => {
+                savePage();
+              }}
+            >
+              Save Page
+            </Button>
+          </div>
+        </div>
       )}
-    </List>
+      {mode === "read" && <div>{pageComponent}</div>}
+    </div>
   );
 }
 
@@ -126,10 +198,5 @@ export default function Page() {
     },
   });
 
-  return (
-    <div>
-      <Header level={1}>{pageName}</Header>
-      {data && <PageMain page={data.page} />}
-    </div>
-  );
+  return <div>{data && <PageMain page={data.page} />}</div>;
 }

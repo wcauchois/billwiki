@@ -35,3 +35,9 @@ https://blog.rust-lang.org/inside-rust/2019/10/11/AsyncAwait-Not-Send-Error-Impr
 ## docker image building
 
 https://shaneutt.com/blog/rust-fast-small-docker-image-builds/
+
+## design inspo?
+
+https://github.com/gollum/gollum/wiki
+
+https://en.wikipedia.org/wiki/Battle_of_Dunbar_(1650)
