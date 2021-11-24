@@ -27,27 +27,6 @@ export interface pageDetailsVariables {
 // This file was automatically generated and should not be edited.
 
 // ====================================================
-// GraphQL mutation operation: updatePage
-// ====================================================
-
-export interface updatePage_update {
-  id: string;
-}
-
-export interface updatePage {
-  update: updatePage_update;
-}
-
-export interface updatePageVariables {
-  input: PageInput;
-}
-
-/* tslint:disable */
-/* eslint-disable */
-// @generated
-// This file was automatically generated and should not be edited.
-
-// ====================================================
 // GraphQL query operation: pageTitleCompletionsList
 // ====================================================
 
@@ -111,6 +90,79 @@ export interface search {
 
 export interface searchVariables {
   query: string;
+}
+
+/* tslint:disable */
+/* eslint-disable */
+// @generated
+// This file was automatically generated and should not be edited.
+
+// ====================================================
+// GraphQL mutation operation: updatePage
+// ====================================================
+
+export interface updatePage_update {
+  id: string;
+  name: string;
+  content: string;
+}
+
+export interface updatePage {
+  update: updatePage_update;
+}
+
+export interface updatePageVariables {
+  input: PageInput;
+}
+
+/* tslint:disable */
+/* eslint-disable */
+// @generated
+// This file was automatically generated and should not be edited.
+
+// ====================================================
+// GraphQL fragment: searchResult
+// ====================================================
+
+export interface searchResult_nameField_highlights {
+  start: number;
+  end: number;
+}
+
+export interface searchResult_nameField {
+  /**
+   * The full text of the field
+   */
+  text: string;
+  /**
+   * A matching fragment from the field
+   */
+  fragment: string;
+  /**
+   * A list of indices in `fragment` that should be highlighted to the user.
+   */
+  highlights: searchResult_nameField_highlights[];
+}
+
+export interface searchResult_contentField_highlights {
+  start: number;
+  end: number;
+}
+
+export interface searchResult_contentField {
+  /**
+   * A matching fragment from the field
+   */
+  fragment: string;
+  /**
+   * A list of indices in `fragment` that should be highlighted to the user.
+   */
+  highlights: searchResult_contentField_highlights[];
+}
+
+export interface searchResult {
+  nameField: searchResult_nameField;
+  contentField: searchResult_contentField;
 }
 
 /* tslint:disable */

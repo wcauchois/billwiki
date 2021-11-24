@@ -3,19 +3,24 @@ import * as qs from "query-string";
 import React from "react";
 import { useMemo } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
+import * as gqlTypes from "../generated/gqlTypes";
 
 import styles from "./SearchResults.module.scss";
 
 const searchQuery = gql`
   query search($query: String!) {
     search(query: $query) {
-      nameField {
-        text
-        ...searchResultField
-      }
-      contentField {
-        ...searchResultField
-      }
+      ...searchResult
+    }
+  }
+
+  fragment searchResult on SearchResult {
+    nameField {
+      text
+      ...searchResultField
+    }
+    contentField {
+      ...searchResultField
     }
   }
 
@@ -61,7 +66,7 @@ function HighlightedText({
   return result;
 }
 
-function SingleResult({ result }: { result: any }) {
+function SingleResult({ result }: { result: gqlTypes.searchResult }) {
   const history = useHistory();
   const pageLink = `/wiki/${result.nameField.text.replace(/ /g, "_")}`;
 
@@ -80,7 +85,7 @@ function SingleResult({ result }: { result: any }) {
   );
 }
 
-function SearchResultsMain({ results }: { results: any[] }) {
+function SearchResultsMain({ results }: { results: gqlTypes.searchResult[] }) {
   return (
     <ul className={styles.resultList}>
       {results.map((result, i) => (
@@ -97,7 +102,7 @@ export default function SearchResults() {
     return (parsed.q || "") as string;
   }, [location]);
 
-  const { data, loading } = useQuery(searchQuery, {
+  const { data, loading } = useQuery<gqlTypes.search, gqlTypes.searchVariables>(searchQuery, {
     variables: {
       query,
     },
