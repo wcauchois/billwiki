@@ -4,10 +4,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: "actions/checkout@v2"
-      - uses: "dhall-lang/setup-dhall@v4"
+      - uses: "dhall-lang/setup-dhall@v4.2.0"
         with:
           github_token: "${{ github.token }}"
-          version: '1.28.0'
+          version: '1.40.1'
       - name: Make Dhall
         run: "make clean && make"
       - name: Check for any changes
