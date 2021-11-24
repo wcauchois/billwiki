@@ -21,7 +21,7 @@ in  GithubActions.Workflow::{
               }
             , GithubActions.Step::{
               , name = Some "Make Dhall"
-              , run = Some "make"
+              , run = Some "make clean && make"
               }
             , GithubActions.Step::{
               , name = Some "Check for any changes"

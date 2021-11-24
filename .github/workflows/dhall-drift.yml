@@ -9,7 +9,7 @@ jobs:
           github_token: "${{ github.token }}"
           version: '1.28.0'
       - name: Make Dhall
-        run: make
+        run: "make clean && make"
       - name: Check for any changes
         run: |2
             test -n "$(git status --porcelain)"
