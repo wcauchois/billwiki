@@ -11,7 +11,7 @@ in  GithubActions.Workflow::{
           , steps =
             [ GithubActions.steps.actions/checkout
             , GithubActions.Step::{
-              , uses = Some "dhall-lang/setup-dhall@v4"
+              , uses = Some "dhall-lang/setup-dhall@v4.2.0"
               , `with` = Some
                   ( toMap
                       { version = "1.28.0"
