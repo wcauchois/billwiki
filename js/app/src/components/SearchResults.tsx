@@ -4,8 +4,7 @@ import React from "react";
 import { useMemo } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
 import * as gqlTypes from "../generated/gqlTypes";
-
-import styles from "./SearchResults.module.scss";
+import TopBar from "./system/TopBar";
 
 const searchQuery = gql`
   query search($query: String!) {
@@ -40,22 +39,38 @@ const searchQuery = gql`
 function HighlightedText({
   fragment,
   highlights,
+  scrollFirstHighlightIntoView,
 }: {
   fragment: string;
   highlights: Array<{ start: number; end: number }>;
+  scrollFirstHighlightIntoView?: boolean;
 }) {
   // Inspiration: https://docs.rs/tantivy/0.15.3/src/tantivy/snippet/mod.rs.html#93-95
   let result = <React.Fragment />;
   let startFrom = 0;
+  let isFirst = true;
   for (const highlight of highlights) {
+    const extraProps =
+      isFirst && scrollFirstHighlightIntoView
+        ? {
+            ref: (el: HTMLElement | null) => {
+              if (el) {
+                el.scrollIntoView();
+              }
+            },
+          }
+        : {};
     result = (
       <>
         {result}
         {fragment.substring(startFrom, highlight.start)}
-        <strong>{fragment.substring(highlight.start, highlight.end)}</strong>
+        <strong {...extraProps}>
+          {fragment.substring(highlight.start, highlight.end)}
+        </strong>
       </>
     );
     startFrom = highlight.end;
+    isFirst = false;
   }
   result = (
     <>
@@ -71,15 +86,23 @@ function SingleResult({ result }: { result: gqlTypes.searchResult }) {
   const pageLink = `/wiki/${result.nameField.text.replace(/ /g, "_")}`;
 
   return (
-    <li className={styles.singleResult}>
-      <Link to={pageLink} className={styles.resultTitle}>
-        <HighlightedText {...result.nameField} />
-      </Link>
+    <li className="mb-5">
+      <div>
+        <Link
+          to={pageLink}
+          className="text-blue-500 text-lg font-bold underline mb-10"
+        >
+          <HighlightedText {...result.nameField} />
+        </Link>
+      </div>
       <pre
-        className={styles.resultContent}
+        className="text-sm cursor-pointer border-solid border-2 p-2 max-h-40 overflow-y-hidden"
         onClick={() => history.push(pageLink)}
       >
-        <HighlightedText {...result.contentField} />
+        <HighlightedText
+          {...result.contentField}
+          scrollFirstHighlightIntoView
+        />
       </pre>
     </li>
   );
@@ -87,7 +110,7 @@ function SingleResult({ result }: { result: gqlTypes.searchResult }) {
 
 function SearchResultsMain({ results }: { results: gqlTypes.searchResult[] }) {
   return (
-    <ul className={styles.resultList}>
+    <ul className="">
       {results.map((result, i) => (
         <SingleResult key={i} result={result} />
       ))}
@@ -102,13 +125,19 @@ export default function SearchResults() {
     return (parsed.q || "") as string;
   }, [location]);
 
-  const { data, loading } = useQuery<gqlTypes.search, gqlTypes.searchVariables>(searchQuery, {
-    variables: {
-      query,
-    },
-  });
+  const { data, loading } = useQuery<gqlTypes.search, gqlTypes.searchVariables>(
+    searchQuery,
+    {
+      variables: {
+        query,
+      },
+    }
+  );
 
   return (
-    <div>{!loading && data && <SearchResultsMain results={data.search} />}</div>
+    <div>
+      <TopBar title="Search results" initialSearch={query} />
+      {!loading && data && <SearchResultsMain results={data.search} />}
+    </div>
   );
 }
