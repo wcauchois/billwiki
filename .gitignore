@@ -3,3 +3,4 @@
 /devindex
 node_modules
 .DS_Store
+.history

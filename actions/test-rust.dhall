@@ -1,20 +1,19 @@
-let GithubActions =
-      https://raw.githubusercontent.com/regadas/github-actions-dhall/master/package.dhall
+let GithubActions = (./deps.dhall).GithubActions
 
-let echo =
-      GithubActions.steps.echo
-        { name = "Echo the greeting's time"
-        , what = "'The time was \${{ steps.hello.outputs.time }}.'"
-        }
+let RustActions = ./rust-actions.dhall
 
 in  GithubActions.Workflow::{
-    , name = "Greeting"
+    , name = "Test Rust"
     , on = GithubActions.On::{ push = Some GithubActions.Push::{=} }
     , jobs = toMap
-        { build = GithubActions.Job::{
-          , name = Some "Greeting"
+        { test = GithubActions.Job::{
+          , name = Some "Test"
           , runs-on = GithubActions.RunsOn.Type.ubuntu-latest
-          , steps = [ echo ]
+          , steps =
+            [ GithubActions.steps.actions/checkout
+            , RustActions.install-toolchain "1.54.0"
+            , RustActions.cargo-command "test"
+            ]
           }
         }
     }
