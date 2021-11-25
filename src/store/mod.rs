@@ -87,3 +87,37 @@ impl Store {
         Ok(pages)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Run with: cargo test temp_test -- --nocapture
+    #[test]
+    fn temp_test() {
+        // FileHistory feature from libgit2sharp: https://github.com/libgit2/libgit2sharp/pull/963/files
+        // https://stackoverflow.com/questions/8239580/how-to-retrieve-the-history-of-a-file
+        let repository = Repository::init_bare("/Users/wcauchois/code/billwiki/devwiki").unwrap();
+        let head = repository.head().unwrap();
+        let head_tree = head.peel_to_tree().unwrap();
+        let prior_head_commit = head.peel_to_commit().unwrap().parent(0).unwrap();
+        let prior_head_tree = prior_head_commit.tree().unwrap();
+        let diff = repository.diff_tree_to_tree(Some(&head_tree), Some(&prior_head_tree), None).unwrap();
+
+        let mut diff_output = String::new();
+        use std::fmt::Write;
+        // diff example: https://libgit2.org/libgit2/ex/HEAD/diff.html
+        // diff_output function: https://github.com/libgit2/libgit2/blob/f9c4dc10d90732cfbe2271dd58b01dd8f4003d15/examples/common.c#L56
+        diff.print(DiffFormat::Patch, |delta, hunk, line| {
+            match line.origin_value() {
+                DiffLineType::Context | DiffLineType::Addition | DiffLineType::Deletion => write!(diff_output, "{}", line.origin()).unwrap(),
+                _ => {}
+            };
+            write!(diff_output, "{}", std::str::from_utf8(line.content()).unwrap());
+            // println!("{:?} {:?} {:?}", delta, hunk, line);
+            true
+        }).unwrap();
+        println!("{}", diff_output);
+        // println!("{:?}", diff.stats().unwrap());
+    }
+}
