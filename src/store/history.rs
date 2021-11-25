@@ -1,5 +1,6 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use git2::*;
+use juniper::GraphQLObject;
 use std::fmt::Write;
 
 pub struct FileHistoryIterator<'repo> {
@@ -25,7 +26,7 @@ impl<'repo> FileHistoryIterator<'repo> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, GraphQLObject)]
 pub struct FileHistoryEntry {
     pub id: String,
     pub message: String,

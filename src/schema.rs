@@ -1,5 +1,5 @@
 use crate::search_actor::{Reindex, Search, SearchActor, SearchResult};
-use crate::store::{Page, Store};
+use crate::store::{history::FileHistoryEntry, Page, Store};
 use juniper::FieldResult;
 use juniper::{EmptySubscription, RootNode};
 use std::sync::{Arc, Mutex};
@@ -17,7 +17,7 @@ impl juniper::Context for GraphQLContext {}
 
 struct GraphQLPage(Page);
 
-#[juniper::graphql_object(name = "Page")]
+#[juniper::graphql_object(name = "Page", context = GraphQLContext)]
 impl GraphQLPage {
     fn id(&self) -> &str {
         self.0.name.as_str()
@@ -29,6 +29,14 @@ impl GraphQLPage {
 
     fn content(&self) -> &str {
         self.0.content.as_str()
+    }
+
+    fn history(&self, context: &GraphQLContext) -> FieldResult<Vec<FileHistoryEntry>> {
+        Ok(context
+            .store
+            .lock()
+            .unwrap()
+            .get_page_history(self.0.name.as_str())?)
     }
 }
 

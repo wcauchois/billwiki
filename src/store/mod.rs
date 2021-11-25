@@ -1,4 +1,4 @@
-mod history;
+pub mod history;
 
 use anyhow::anyhow;
 use git2::*;
@@ -73,6 +73,12 @@ impl Store {
         let head_tree = self.repository.head()?.peel_to_tree()?;
         let entry = head_tree.get_path(Path::new(&path))?;
         self.tree_entry_to_page(entry)
+    }
+
+    pub fn get_page_history(&self, name: &str) -> anyhow::Result<Vec<FileHistoryEntry>> {
+        let path = self.name_to_path(name);
+        let mut iter = FileHistoryIterator::new(&self.repository, path)?;
+        Ok(iter.collect_and_flatten())
     }
 
     pub fn get_pages(&self) -> anyhow::Result<Vec<Page>> {
