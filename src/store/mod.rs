@@ -1,7 +1,10 @@
+mod history;
+
 use anyhow::anyhow;
 use git2::*;
 use std::path::Path;
 use std::path::PathBuf;
+use history::*;
 
 pub struct Store {
     repository: Repository,
@@ -102,7 +105,10 @@ mod tests {
         let head_tree = head.peel_to_tree().unwrap();
         let prior_head_commit = head.peel_to_commit().unwrap().parent(0).unwrap();
         let prior_head_tree = prior_head_commit.tree().unwrap();
-        let diff = repository.diff_tree_to_tree(Some(&head_tree), Some(&prior_head_tree), None).unwrap();
+        let diff = repository.diff_tree_to_tree(
+            Some(&head_tree),
+            Some(&prior_head_tree),
+            Some(DiffOptions::new().pathspec("Home.md"))).unwrap();
 
         let mut diff_output = String::new();
         use std::fmt::Write;
@@ -118,6 +124,27 @@ mod tests {
             true
         }).unwrap();
         println!("{}", diff_output);
-        // println!("{:?}", diff.stats().unwrap());
+        println!("deltas: {:?}", diff.deltas().into_iter().collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn initial_parent() {
+        let repository = Repository::init_bare("/Users/wcauchois/code/billwiki/devwiki").unwrap();
+        let commit = repository.find_commit(Oid::from_str("a218d4251410049db21b7f5ccbb01a94d45f664f").unwrap()).unwrap();
+        println!("{:?}", commit);
+        println!("{:?}", commit.parents().next());
+    }
+
+    #[test]
+    fn iter_test() {
+        let repository = Repository::init_bare("/Users/wcauchois/code/billwiki/devwiki").unwrap();
+        let mut iter = FileHistoryIterator::new(&repository, "Home.md").unwrap();
+        let entries = iter.collect_and_flatten();
+        for entry in entries {
+            println!("message: {}", entry.message);
+            println!();
+            println!("{}", entry.diff);
+            println!("---------")
+        }
     }
 }
