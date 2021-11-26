@@ -1,7 +1,8 @@
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, useCallback, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
 import Header from "./Header";
 import TextInput from "./TextInput";
+import { useMousetrap } from "../../lib/mousetrap";
 
 import homeSrc from "../../assets/images/home.svg";
 import classNames from "classnames";
@@ -44,6 +45,16 @@ export default function TopBar({
     [history]
   );
 
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useMousetrap(
+    "/",
+    useCallback(() => {
+      searchRef.current?.focus();
+      return false;
+    }, [searchRef])
+  );
+
   return (
     <div className="flex justify-between border-b-2 border-solid mb-4">
       <div className="flex items-center">
@@ -55,6 +66,7 @@ export default function TopBar({
         <div className="flex items-center w-60">
           <TextInput
             placeholder="Search"
+            ref={searchRef}
             value={searchText}
             onChange={(e) => {
               setSearchText(e.currentTarget.value);
@@ -62,6 +74,8 @@ export default function TopBar({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 onSearch(searchText);
+              } else if (e.key === "Escape") {
+                searchRef.current?.blur();
               }
             }}
           />

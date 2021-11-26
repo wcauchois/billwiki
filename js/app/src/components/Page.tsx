@@ -3,7 +3,7 @@ import { ReactNode, useCallback, useMemo } from "react";
 import { useState } from "react";
 import { useHistory, useLocation, useParams } from "react-router-dom";
 import { convertMarkdownToComponent } from "../lib/markdown";
-import { useMoustrap as useMousetrap } from "../lib/mousetrap";
+import { useMousetrap as useMousetrap } from "../lib/mousetrap";
 import PageEditor from "./PageEditor";
 import { pageFragment } from "../lib/fragments";
 import * as gqlTypes from "../generated/gqlTypes";
@@ -127,12 +127,19 @@ function PageMain({ page }: { page: gqlTypes.page }) {
     [page.content]
   );
 
-  useMousetrap(
-    "e",
-    useCallback(() => {
-      setMode("edit");
-    }, [setMode])
-  );
+  /* eslint-disable react-hooks/rules-of-hooks */
+  for (const [key, newMode] of [
+    ["e", "edit"],
+    ["h", "history"],
+    ["r", "read"],
+  ] as Array<[string, PageMode]>) {
+    useMousetrap(
+      key,
+      useCallback(() => {
+        setMode(newMode);
+      }, [setMode, newMode])
+    );
+  }
 
   const savePage = async () => {
     try {
