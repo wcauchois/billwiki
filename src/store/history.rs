@@ -29,6 +29,7 @@ impl<'repo> FileHistoryIterator<'repo> {
 #[derive(Debug, GraphQLObject)]
 pub struct FileHistoryEntry {
     pub id: String,
+    pub commit_id: String,
     pub message: String,
     pub date: DateTime<Utc>,
     pub diff: String,
@@ -86,8 +87,10 @@ impl<'repo> Iterator for FileHistoryIterator<'repo> {
                 Utc,
             );
             let diff_string = diff_to_string(&diff);
+            let commit_id = current_commit.id().to_string();
             Some(Some(FileHistoryEntry {
-                id: current_commit.id().to_string(),
+                id: format!("{}/{}", self.filename, commit_id),
+                commit_id,
                 date: commit_date,
                 diff: diff_string,
                 message: current_commit.message().unwrap_or("").to_string(),

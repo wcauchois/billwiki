@@ -1,7 +1,7 @@
 import { gql, useQuery } from "@apollo/client";
 import { ReactNode, useCallback, useMemo } from "react";
 import { useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { convertMarkdownToComponent } from "../lib/markdown";
 import { useMoustrap as useMousetrap } from "../lib/mousetrap";
 import PageEditor from "./PageEditor";
@@ -11,6 +11,7 @@ import classNames from "classnames";
 import Button from "./system/Button";
 import { useUpdatePage } from "../lib/mutations";
 import TopBar from "./system/TopBar";
+import PageHistory from "./PageHistory";
 
 const pageDetailsQuery = gql`
   query pageDetails($name: String!) {
@@ -32,7 +33,7 @@ function PageControlTab({
   onClick?(): void;
 }) {
   const classes = classNames(
-    "border-solid border-2 px-6 py-1 cursor-pointer last:border-l-0 border-b-0 flex items-center text-lg",
+    "border-solid border-t-2 border-l-2 px-4 py-1 cursor-pointer last:border-r-2 flex items-center text-md",
     !active && "bg-gradient-to-b from-white via-white to-gray-200",
     active && "font-bold"
   );
@@ -43,7 +44,7 @@ function PageControlTab({
   );
 }
 
-type PageMode = "read" | "edit";
+type PageMode = "read" | "edit" | "history";
 
 function PageControls({
   mode,
@@ -64,7 +65,7 @@ function PageControls({
           <div className="flex items-center">
             <Button onClick={onNewPage}>New Page</Button>
           </div>
-          <div className="flex mx-4">
+          <div className="flex mx-4 items-end">
             <PageControlTab
               active={mode === "read"}
               onClick={() => {
@@ -81,6 +82,14 @@ function PageControls({
             >
               Edit
             </PageControlTab>
+            <PageControlTab
+              active={mode === "history"}
+              onClick={() => {
+                onModeChanged("history");
+              }}
+            >
+              History
+            </PageControlTab>
           </div>
         </>
       }
@@ -89,8 +98,15 @@ function PageControls({
 }
 
 function PageMain({ page }: { page: gqlTypes.page }) {
-  const [mode, setRawMode] = useState<PageMode>("read");
   const history = useHistory();
+  const location = useLocation();
+
+  let mode: PageMode = "read";
+  if (location.hash === "#edit") {
+    mode = "edit";
+  } else if (location.hash === "#history") {
+    mode = "history";
+  }
 
   const pageComponent = useMemo(
     () => convertMarkdownToComponent(page.content),
@@ -103,7 +119,10 @@ function PageMain({ page }: { page: gqlTypes.page }) {
   const setMode = useCallback(
     (newMode: PageMode) => {
       setEditedContent(page.content);
-      setRawMode(newMode);
+      history.push({
+        ...location,
+        hash: newMode === "read" ? undefined : `#${newMode}`,
+      });
     },
     [page.content]
   );
@@ -163,6 +182,7 @@ function PageMain({ page }: { page: gqlTypes.page }) {
         </div>
       )}
       {mode === "read" && <div>{pageComponent}</div>}
+      {mode === "history" && <PageHistory pageName={page.name} />}
     </div>
   );
 }

@@ -40,6 +40,36 @@ export interface pageTitleCompletionsList {
 // This file was automatically generated and should not be edited.
 
 // ====================================================
+// GraphQL query operation: pageHistoryDetails
+// ====================================================
+
+export interface pageHistoryDetails_page_history {
+  id: string;
+  commitId: string;
+  message: string;
+  date: any;
+  diff: string;
+}
+
+export interface pageHistoryDetails_page {
+  id: string;
+  history: pageHistoryDetails_page_history[];
+}
+
+export interface pageHistoryDetails {
+  page: pageHistoryDetails_page;
+}
+
+export interface pageHistoryDetailsVariables {
+  name: string;
+}
+
+/* tslint:disable */
+/* eslint-disable */
+// @generated
+// This file was automatically generated and should not be edited.
+
+// ====================================================
 // GraphQL query operation: search
 // ====================================================
 
@@ -113,6 +143,23 @@ export interface updatePage {
 
 export interface updatePageVariables {
   input: PageInput;
+}
+
+/* tslint:disable */
+/* eslint-disable */
+// @generated
+// This file was automatically generated and should not be edited.
+
+// ====================================================
+// GraphQL fragment: fileHistoryEntry
+// ====================================================
+
+export interface fileHistoryEntry {
+  id: string;
+  commitId: string;
+  message: string;
+  date: any;
+  diff: string;
 }
 
 /* tslint:disable */
